@@ -8,12 +8,20 @@ function HomePage() {
   const [products, setProducts] = useState([]);
   const [isError, setIsError] = useState(null);
   const [isLoading, setIsLoading] = useState(null);
+  const [category, setCategory] = useState(""); // state ของ category ในการ set query paramater category และ set ช่อง view category
+  const [keywords, setKeywords] = useState(""); // state ของ keyword ในการ set query parameter keywords และ set ช่อง search
+  const [pages, setPages] = useState(0); // state ของ pagination โดย set ให้หน้าแรกเป็น 0
+  const [limit, setLimit] = useState(5); // state ของ limit
 
   const getProducts = async () => {
     try {
       setIsError(false);
       setIsLoading(true);
-      const results = await axios("http://localhost:4001/products");
+      const results = await axios(
+        `http://localhost:4001/products?category=${category}&keywords=${keywords}&page=${pages}&limit=${limit}`
+      );
+      // category คือค่าที่มาจาก server ต้องเขียนให้ตรงกับ server
+      // ${category} คือ state ที่เป็นตัวเลือกว่าจะเลือกเป็น category อะไร
       setProducts(results.data.data);
       setIsLoading(false);
     } catch (error) {
@@ -24,13 +32,13 @@ function HomePage() {
 
   const deleteProduct = async (productId) => {
     await axios.delete(`http://localhost:4001/products/${productId}`);
-    const newProducts = products.filter((product) => product.id !== productId);
+    const newProducts = products.filter((product) => product._id !== productId);
     setProducts(newProducts);
   };
 
   useEffect(() => {
     getProducts();
-  }, []);
+  }, [category, keywords, pages, limit]); // อย่าลืม execute ไม่งั้นจะไม่แสดงผล
 
   return (
     <div>
@@ -48,16 +56,34 @@ function HomePage() {
         <div className="search-box">
           <label>
             Search product
-            <input type="text" placeholder="Search by name" />
+            <input
+              type="text"
+              placeholder="Search by name"
+              // set ช่อง search ให้สามารถค้นหาได้
+              value={keywords}
+              onChange={(e) => {
+                setKeywords(e.target.value);
+              }}
+            />
           </label>
         </div>
         <div className="category-filter">
           <label>
             View Category
-            <select id="category" name="category" value="it">
+            <select
+              id="category"
+              name="category"
+              // set ช่อง category ให้สามารถเลือก category ได้
+              value={category}
+              onChange={(e) => {
+                setCategory(e.target.value);
+              }}
+            >
               <option disabled value="">
                 -- Select a category --
               </option>
+              {/* เพิ่ม All เพื่อให้แสดงข้อมูลทั้งหมด */}
+              <option value="">All</option>
               <option value="it">IT</option>
               <option value="fashion">Fashion</option>
               <option value="food">Food</option>
@@ -85,8 +111,8 @@ function HomePage() {
               <div className="product-detail">
                 <h1>Product name: {product.name} </h1>
                 <h2>Product price: {product.price}</h2>
-                <h3>Category: IT</h3>
-                <h3>Created Time: 1 Jan 2011, 00:00:00</h3>
+                <h3>Category: {product.category}</h3>
+                <h3>Created Time: {product.created_date}</h3>
                 <p>Product description: {product.description} </p>
                 <div className="product-actions">
                   <button
@@ -124,10 +150,31 @@ function HomePage() {
       </div>
 
       <div className="pagination">
-        <button className="previous-button">Previous</button>
-        <button className="next-button">Next</button>
+        <button
+          className="previous-button"
+          // set ปุ่ม ให้กดแล้วกลับหน้าเก่า
+          onClick={() => {
+            setPages(pages - 1);
+            //ใส่ logic ถ้า pages น้อยกว่า 1 จะไม่สามารถกดได้ ไม่อย่างนั้น ตัวเลขที่ total page จะเป็นค่าติดลบ
+            if (pages < 1) {
+              setPages(0);
+            }
+          }}
+        >
+          Previous
+        </button>
+        <button
+          className="next-button"
+          // set ปุ่ม ให้กดแล้วไปหน้าถัดไป
+          onClick={() => {
+            setPages(pages + 1);
+          }}
+        >
+          Next
+        </button>
       </div>
-      <div className="pages">1/ total page</div>
+      {/* หน้าแรกเป็น 0 ตัวเลขตรงนี้จึงต้อง +1 เพื่อให้เริ่มแสดงหน้าเป็นหน้าที่ 1 */}
+      <div className="pages">{pages + 1}/ total page</div>
     </div>
   );
 }
